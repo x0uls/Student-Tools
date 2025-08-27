@@ -1,6 +1,12 @@
 import math
 import random
-from constants import DEFAULT_WORK_MIN, DEFAULT_BREAK_MIN, LONG_BREAK_MIN, WORK_QUOTES, BREAK_QUOTES
+from .constants import (
+    DEFAULT_WORK_MIN,
+    DEFAULT_BREAK_MIN,
+    LONG_BREAK_MIN,
+    WORK_QUOTES,
+    BREAK_QUOTES,
+)
 
 # Global state
 is_paused = False
@@ -12,8 +18,18 @@ completed_focus_sessions = 0
 total_focus_minutes = 0
 
 
-def reset_timer(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-                check_marks, session_label, minutes_label, theme):
+def reset_timer(
+    window,
+    canvas,
+    timer_text,
+    progress_arc,
+    mode_label,
+    quote_label,
+    check_marks,
+    session_label,
+    minutes_label,
+    theme,
+):
     global reps, timer, is_paused, time_left, completed_focus_sessions, total_focus_minutes
     if timer:
         window.after_cancel(timer)
@@ -32,9 +48,20 @@ def reset_timer(window, canvas, timer_text, progress_arc, mode_label, quote_labe
     minutes_label.config(text="Total Focus Minutes: 0")
 
 
-def start_timer(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-                check_marks, session_label, minutes_label, theme,
-                work_entry, break_entry):
+def start_timer(
+    window,
+    canvas,
+    timer_text,
+    progress_arc,
+    mode_label,
+    quote_label,
+    check_marks,
+    session_label,
+    minutes_label,
+    theme,
+    work_entry,
+    break_entry,
+):
     global reps, total_time, time_left, is_paused
     reps += 1
     is_paused = False
@@ -56,14 +83,36 @@ def start_timer(window, canvas, timer_text, progress_arc, mode_label, quote_labe
         quote_label.config(text=random.choice(WORK_QUOTES))
 
     time_left = total_time
-    countdown(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-              check_marks, session_label, minutes_label, theme,
-              work_entry, break_entry)
+    countdown(
+        window,
+        canvas,
+        timer_text,
+        progress_arc,
+        mode_label,
+        quote_label,
+        check_marks,
+        session_label,
+        minutes_label,
+        theme,
+        work_entry,
+        break_entry,
+    )
 
 
-def countdown(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-              check_marks, session_label, minutes_label, theme,
-              work_entry, break_entry):
+def countdown(
+    window,
+    canvas,
+    timer_text,
+    progress_arc,
+    mode_label,
+    quote_label,
+    check_marks,
+    session_label,
+    minutes_label,
+    theme,
+    work_entry,
+    break_entry,
+):
     global time_left, timer, is_paused, completed_focus_sessions, total_focus_minutes
 
     if not is_paused and time_left > 0:
@@ -75,20 +124,46 @@ def countdown(window, canvas, timer_text, progress_arc, mode_label, quote_label,
         canvas.itemconfig(progress_arc, extent=progress)
 
         time_left -= 1
-        timer = window.after(1000, countdown, window, canvas, timer_text, progress_arc,
-                             mode_label, quote_label, check_marks, session_label,
-                             minutes_label, theme, work_entry, break_entry)
+        timer = window.after(
+            1000,
+            countdown,
+            window,
+            canvas,
+            timer_text,
+            progress_arc,
+            mode_label,
+            quote_label,
+            check_marks,
+            session_label,
+            minutes_label,
+            theme,
+            work_entry,
+            break_entry,
+        )
 
     elif time_left == 0:
         if reps % 2 == 1:  # finished work session
             completed_focus_sessions += 1
             total_focus_minutes += int(work_entry.get() or DEFAULT_WORK_MIN)
             check_marks.config(text="✔" * completed_focus_sessions)
-            session_label.config(text=f"Completed Focus Sessions: {completed_focus_sessions}")
+            session_label.config(
+                text=f"Completed Focus Sessions: {completed_focus_sessions}"
+            )
             minutes_label.config(text=f"Total Focus Minutes: {total_focus_minutes}")
-        start_timer(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-                    check_marks, session_label, minutes_label, theme,
-                    work_entry, break_entry)
+        start_timer(
+            window,
+            canvas,
+            timer_text,
+            progress_arc,
+            mode_label,
+            quote_label,
+            check_marks,
+            session_label,
+            minutes_label,
+            theme,
+            work_entry,
+            break_entry,
+        )
 
 
 def pause_timer():
@@ -96,12 +171,34 @@ def pause_timer():
     is_paused = True
 
 
-def resume_timer(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-                 check_marks, session_label, minutes_label, theme,
-                 work_entry, break_entry):
+def resume_timer(
+    window,
+    canvas,
+    timer_text,
+    progress_arc,
+    mode_label,
+    quote_label,
+    check_marks,
+    session_label,
+    minutes_label,
+    theme,
+    work_entry,
+    break_entry,
+):
     global is_paused
     if is_paused:
         is_paused = False
-        countdown(window, canvas, timer_text, progress_arc, mode_label, quote_label,
-                  check_marks, session_label, minutes_label, theme,
-                  work_entry, break_entry)
+        countdown(
+            window,
+            canvas,
+            timer_text,
+            progress_arc,
+            mode_label,
+            quote_label,
+            check_marks,
+            session_label,
+            minutes_label,
+            theme,
+            work_entry,
+            break_entry,
+        )
