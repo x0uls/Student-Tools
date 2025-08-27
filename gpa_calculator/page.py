@@ -1,4 +1,6 @@
 import customtkinter as ctk
+import openpyxl
+import os
 from .semester_detail_page import SemesterDetailPage, GRADE_POINTS
 from .chart import GPAChartPage
 
@@ -19,7 +21,7 @@ class GPACalculatorPage(ctk.CTkFrame):
         )
         self.cgpa_label.pack(pady=5)
 
-        # --- Scrollable semester cards ---
+        # Semester cards
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
         self.scrollable_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
@@ -30,7 +32,7 @@ class GPACalculatorPage(ctk.CTkFrame):
         # Keep track of semesters
         self.semesters = []
 
-        # Add Semester Button (always at the bottom)
+        # Add Semester Button
         self.add_sem_btn = ctk.CTkButton(
             self,
             text="Add Semester",
@@ -49,6 +51,8 @@ class GPACalculatorPage(ctk.CTkFrame):
         self.chart_link.pack(pady=5)
 
         self.chart_link.bind("<Button-1>", lambda e: self.open_chart_page())
+
+        self.load_from_excel()
 
     def add_semester(self):
         sem_number = len(self.semesters) + 1
@@ -92,7 +96,6 @@ class GPACalculatorPage(ctk.CTkFrame):
         gpa_label.pack(anchor="w")
         sem["gpa_label"] = gpa_label
 
-        # Floating X button at right middle with rounded corners
         remove_btn = ctk.CTkButton(
             card,
             text="X",
@@ -100,15 +103,15 @@ class GPACalculatorPage(ctk.CTkFrame):
             height=25,
             fg_color="red",
             hover_color="darkred",
-            corner_radius=12,  # rounded corners
+            corner_radius=12,
             border_width=0,
             text_color="white",
             command=lambda s=sem: self.remove_semester(s),
         )
-        # Float it at middle-right
+
         remove_btn.place(relx=0.98, rely=0.5, x=-5, y=0, anchor="e")
 
-        # Bind click to open semester (skip the remove button)
+        # Bind click to open semester
         def on_click(event, s=sem):
             self.open_semester(s)
 
@@ -162,6 +165,7 @@ class GPACalculatorPage(ctk.CTkFrame):
             sem["gpa_label"].configure(text=f"GPA: {sem['gpa']:.2f}")
 
         self._update_total_cgpa()
+        self.save_to_excel()
 
     def _update_total_cgpa(self):
         """Calculate CGPA from all semesters."""
@@ -173,6 +177,7 @@ class GPACalculatorPage(ctk.CTkFrame):
                 total_credits += subj["credit"]
         cgpa = total_points / total_credits if total_credits else 0.0
         self.cgpa_label.configure(text=f"Total CGPA: {cgpa:.2f}")
+        self.save_to_excel()
 
     def show_main_page(self):
         self.place(relwidth=1, relheight=1)
@@ -193,3 +198,76 @@ class GPACalculatorPage(ctk.CTkFrame):
             self.chart_page.place(relwidth=1, relheight=1)
 
         self.chart_page.lift()
+
+    def save_to_excel(self, filename="gpa_data.xlsx"):
+        """Save all semester/subject data into an Excel file."""
+        folder = os.path.join(os.path.dirname(__file__))
+        os.makedirs(folder, exist_ok=True)  # create folder if it doesn't exist
+        file_path = os.path.join(folder, filename)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "GPA Data"
+
+        # Header row
+        ws.append(["Semester", "Subject", "Credit", "Grade", "GPA"])
+
+        for sem in self.semesters:
+            for subj in sem["subjects"]:
+                ws.append(
+                    [
+                        sem["name"],
+                        subj["name"],
+                        subj["credit"],
+                        subj["grade"],
+                        f"{sem['gpa']:.2f}",
+                    ]
+                )
+
+        # Save workbook
+        wb.save(file_path)
+        print(f"Data saved automatically to {os.path.abspath(file_path)}")
+
+    def load_from_excel(self, filename="gpa_data.xlsx"):
+        folder = os.path.dirname(__file__)
+        file_path = os.path.join(folder, filename)
+        if not os.path.exists(file_path):
+            return
+
+        wb = openpyxl.load_workbook(file_path)
+        ws = wb.active
+        data_rows = list(ws.iter_rows(values_only=True))[1:]  # skip header
+
+        semesters_dict = {}
+        for sem_name, subj_name, credit, grade, gpa in data_rows:
+            if sem_name not in semesters_dict:
+                semesters_dict[sem_name] = {
+                    "name": sem_name,
+                    "gpa": 0.0,
+                    "subjects": [],
+                    "detail_page": None,
+                    "card": None,
+                    "gpa_label": None,
+                }
+            semesters_dict[sem_name]["subjects"].append(
+                {
+                    "name": subj_name,
+                    "credit": float(credit),
+                    "grade": grade,
+                }
+            )
+
+        # Clear and rebuild
+        self.semesters.clear()
+        for sem in semesters_dict.values():
+            total_points = sum(
+                GRADE_POINTS[s["grade"]] * s["credit"] for s in sem["subjects"]
+            )
+            total_credits = sum(s["credit"] for s in sem["subjects"])
+            sem["gpa"] = total_points / total_credits if total_credits else 0.0
+
+            self.semesters.append(sem)
+            self._create_semester_card(sem)
+
+        self._update_total_cgpa()
+        print(f"Data loaded from {os.path.abspath(file_path)}")
