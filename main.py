@@ -14,6 +14,7 @@ class MultiToolApp(ctk.CTk):
         super().__init__()
         self.title("Student Multi-Tool")
         self.geometry("360x640")
+        self.resizable(False, False)  # Prevent resizing
 
         # Container for pages
         self.container = ctk.CTkFrame(self)
@@ -26,16 +27,18 @@ class MultiToolApp(ctk.CTk):
         navbar = ctk.CTkFrame(self, height=50)
         navbar.pack(side="bottom", fill="x")
 
-        ctk.CTkButton(navbar, text="GPA", command=lambda: self.show_page("gpa")).pack(
-            side="left", expand=True, fill="both"
+        # Use grid layout for even spacing
+        navbar.grid_columnconfigure((0, 1, 2), weight=1)  # three columns, equal width
+
+        ctk.CTkButton(navbar, text="GPA", command=lambda: self.show_page("gpa")).grid(
+            row=0, column=0, sticky="nsew"
         )
         ctk.CTkButton(
             navbar, text="Pomodoro", command=lambda: self.show_page("pomodoro")
-        ).pack(side="left", expand=True, fill="both")
+        ).grid(row=0, column=1, sticky="nsew")
         ctk.CTkButton(
             navbar, text="Reminder", command=lambda: self.show_page("reminder")
-        ).pack(side="left", expand=True, fill="both")
-
+        ).grid(row=0, column=2, sticky="nsew")
         # Start with GPA page
         self.show_page("gpa")
 

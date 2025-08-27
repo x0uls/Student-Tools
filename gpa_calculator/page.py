@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from .semester_detail_page import SemesterDetailPage, GRADE_POINTS
+from .chart import GPAChartPage
 
 
 class GPACalculatorPage(ctk.CTkFrame):
@@ -37,6 +38,17 @@ class GPACalculatorPage(ctk.CTkFrame):
             command=self.add_semester,
         )
         self.add_sem_btn.pack(pady=10)
+
+        self.chart_link = ctk.CTkLabel(
+            self,
+            text="📈 View GPA Chart",
+            font=ctk.CTkFont(size=12, underline=True),
+            text_color="blue",
+            cursor="hand2",
+        )
+        self.chart_link.pack(pady=5)
+
+        self.chart_link.bind("<Button-1>", lambda e: self.open_chart_page())
 
     def add_semester(self):
         sem_number = len(self.semesters) + 1
@@ -169,3 +181,15 @@ class GPACalculatorPage(ctk.CTkFrame):
         if sem["detail_page"]:
             sem["detail_page"].place_forget()
         self.show_main_page()
+
+    def open_chart_page(self):
+        if not hasattr(self, "chart_page") or self.chart_page is None:
+            self.chart_page = GPAChartPage(
+                self.parent, self.semesters, go_back_callback=self.show_main_page
+            )
+            self.chart_page.place(relwidth=1, relheight=1)
+        else:
+            self.chart_page.draw_chart()
+            self.chart_page.place(relwidth=1, relheight=1)
+
+        self.chart_page.lift()
