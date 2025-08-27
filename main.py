@@ -1,8 +1,9 @@
 import customtkinter as ctk
+from PIL import Image
 
 # Global appearance
-ctk.set_appearance_mode("dark")  # "dark" or "system"
-ctk.set_default_color_theme("dark-blue")  # "blue", "green", "dark-blue"
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")  # this will give buttons a dark-blue style
 
 from gpa_calculator import GPACalculatorPage
 from pomodoro import PomodoroPage
@@ -14,33 +15,60 @@ class MultiToolApp(ctk.CTk):
         super().__init__()
         self.title("Student Multi-Tool")
         self.geometry("360x640")
+        self.resizable(False, False)
 
         # Container for pages
         self.container = ctk.CTkFrame(self)
         self.container.pack(expand=True, fill="both")
 
-        # Dictionary to hold page objects (initially empty)
+        # Dictionary to hold page objects
         self.pages = {}
+
+        # --- Load images ---
+        self.icon_size = (28, 28)
+        self.calc_icon = self.load_icon("assets/calculator.png")
+        self.timer_icon = self.load_icon("assets/timer.png")
+        self.remind_icon = self.load_icon("assets/reminder.png")
 
         # Bottom navigation bar
         navbar = ctk.CTkFrame(self, height=50)
         navbar.pack(side="bottom", fill="x")
+        navbar.grid_columnconfigure((0, 1, 2), weight=1)
 
-        ctk.CTkButton(navbar, text="GPA", command=lambda: self.show_page("gpa")).pack(
-            side="left", expand=True, fill="both"
-        )
+        # Icon buttons — now using dark-blue theme colors
         ctk.CTkButton(
-            navbar, text="Pomodoro", command=lambda: self.show_page("pomodoro")
-        ).pack(side="left", expand=True, fill="both")
+            navbar,
+            image=self.calc_icon,
+            text="",
+            command=lambda: self.show_page("gpa"),
+            hover_color="#1a2b4c",  # optional tweak to make hover darker blue
+        ).grid(row=0, column=0, sticky="nsew")
+
         ctk.CTkButton(
-            navbar, text="Reminder", command=lambda: self.show_page("reminder")
-        ).pack(side="left", expand=True, fill="both")
+            navbar,
+            image=self.timer_icon,
+            text="",
+            command=lambda: self.show_page("pomodoro"),
+            hover_color="#1a2b4c",
+        ).grid(row=0, column=1, sticky="nsew")
+
+        ctk.CTkButton(
+            navbar,
+            image=self.remind_icon,
+            text="",
+            command=lambda: self.show_page("reminder"),
+            hover_color="#1a2b4c",
+        ).grid(row=0, column=2, sticky="nsew")
 
         # Start with GPA page
         self.show_page("gpa")
 
+    def load_icon(self, path):
+        """Helper to load and resize icons as CTkImage."""
+        img = Image.open(path)
+        return ctk.CTkImage(light_image=img, dark_image=img, size=self.icon_size)
+
     def show_page(self, page_name):
-        # If page doesn't exist yet, create it
         if page_name not in self.pages:
             if page_name == "gpa":
                 self.pages[page_name] = GPACalculatorPage(self.container)
@@ -51,7 +79,6 @@ class MultiToolApp(ctk.CTk):
 
             self.pages[page_name].place(relwidth=1, relheight=1)
 
-        # Bring the page to front
         self.pages[page_name].lift()
 
 
