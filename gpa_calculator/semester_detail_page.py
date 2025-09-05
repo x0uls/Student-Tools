@@ -43,29 +43,38 @@ class SemesterDetailPage(ctk.CTkFrame):
         # --- Subject Form ---
         form_frame = ctk.CTkFrame(self)
         form_frame.pack(fill="x", pady=10, padx=10)
+
+        # Labels and entries
         ctk.CTkLabel(form_frame, text="Subject Name:").grid(
-            row=0, column=0, padx=5, pady=5
+            row=0, column=0, padx=5, pady=5, sticky="e"
         )
         self.subject_entry = ctk.CTkEntry(form_frame, width=150)
-        self.subject_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.subject_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
         ctk.CTkLabel(form_frame, text="Credit Hours:").grid(
-            row=1, column=0, padx=5, pady=5
+            row=1, column=0, padx=5, pady=5, sticky="e"
         )
         self.credit_entry = ctk.CTkEntry(form_frame, width=150)
-        self.credit_entry.grid(row=1, column=1, padx=5, pady=5)
+        self.credit_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
-        ctk.CTkLabel(form_frame, text="Grade:").grid(row=2, column=0, padx=5, pady=5)
+        ctk.CTkLabel(form_frame, text="Grade:").grid(
+            row=2, column=0, padx=5, pady=5, sticky="e"
+        )
         self.grade_option = ctk.CTkOptionMenu(
             form_frame, values=list(GRADE_POINTS.keys())
         )
-        self.grade_option.grid(row=2, column=1, padx=5, pady=5)
+        self.grade_option.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         self.grade_option.set("A")
 
+        # Center Add Subject button
         add_btn = ctk.CTkButton(
-            form_frame, text="Add Subject", command=self.add_subject
+            form_frame, text="Add Subject", command=self.add_subject, width=150
         )
         add_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
+        # Make sure both columns expand evenly so button stays centered
+        form_frame.grid_columnconfigure(0, weight=1)
+        form_frame.grid_columnconfigure(1, weight=1)
 
         # --- Scrollable Subject List ---
         self.subject_list_frame = ctk.CTkScrollableFrame(
@@ -230,7 +239,7 @@ class SemesterDetailPage(ctk.CTkFrame):
         msg_label.place(relx=0.5, rely=1.05, anchor="s")  # start slightly below
 
         def slide_in(y=1.05):
-            if y > 0.95:  # stop at 0.95 (bottom)
+            if y > 0.9:  # stop at 0.95 (bottom)
                 msg_label.place(relx=0.5, rely=y, anchor="s")
                 msg_label.after(15, lambda: slide_in(y - 0.01))
 
