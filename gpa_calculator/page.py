@@ -45,7 +45,7 @@ class GPACalculatorPage(ctk.CTkFrame):
             self,
             text="📈 View GPA Chart",
             font=ctk.CTkFont(size=12, underline=True),
-            text_color="blue",
+            text_color="#1a73e8",
             cursor="hand2",
         )
         self.chart_link.pack(pady=5)
