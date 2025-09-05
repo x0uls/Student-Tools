@@ -1,7 +1,5 @@
 # ui.py
 import tkinter as tk
-import openpyxl
-import os
 from .constants import LIGHT_THEME, DARK_THEME, FONT_NAME
 from .timer_logic import start_timer, reset_timer, pause_timer, resume_timer, is_paused
 

@@ -95,7 +95,7 @@ class SemesterDetailPage(ctk.CTkFrame):
 
         # --- Validation ---
         if not name or not credit or not grade:
-            print("Please fill all fields")
+            self.show_temp_message("Please fill all fields")
             return
 
         try:
@@ -103,7 +103,7 @@ class SemesterDetailPage(ctk.CTkFrame):
             if credit <= 0:
                 raise ValueError
         except ValueError:
-            print("Credit hours must be a positive number")
+            self.show_temp_message("Credit hours must be a positive number")
             return
 
         # Add the row
@@ -213,3 +213,33 @@ class SemesterDetailPage(ctk.CTkFrame):
             except ValueError:
                 continue
         return subjects_data
+
+    def show_temp_message(self, text, duration=2000):
+        """Show a toast-like message inside the same window."""
+
+        msg_label = ctk.CTkLabel(
+            self,
+            text=text,
+            text_color="white",
+            font=("Helvetica", 13, "bold"),
+            fg_color="#ff4d4d",
+            corner_radius=20,
+            padx=15,
+            pady=10,
+        )
+        msg_label.place(relx=0.5, rely=1.05, anchor="s")  # start slightly below
+
+        def slide_in(y=1.05):
+            if y > 0.95:  # stop at 0.95 (bottom)
+                msg_label.place(relx=0.5, rely=y, anchor="s")
+                msg_label.after(15, lambda: slide_in(y - 0.01))
+
+        def slide_out(y=0.95):
+            if y < 1.2:  # move down then destroy
+                msg_label.place(relx=0.5, rely=y, anchor="s")
+                msg_label.after(15, lambda: slide_out(y + 0.01))
+            else:
+                msg_label.destroy()
+
+        slide_in()
+        msg_label.after(duration, lambda: slide_out())
