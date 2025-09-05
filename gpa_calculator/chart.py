@@ -40,14 +40,28 @@ class GPAChartPage(ctk.CTkFrame):
     def draw_chart(self):
         gpas = [sem["gpa"] for sem in self.semesters]
         self.ax.clear()
+
+        # Plot line + markers (clip_on=False so dots at 4.0 aren’t cut off)
         self.ax.plot(
-            range(1, len(gpas) + 1), gpas, marker="o", color="blue", linewidth=2
+            range(1, len(gpas) + 1),
+            gpas,
+            marker="o",
+            color="blue",
+            linewidth=2,
+            clip_on=False,  # keep full marker visible
         )
+
+        # Titles/labels
         self.ax.set_title("Semester GPA Trend")
         self.ax.set_xlabel("Semester")
         self.ax.set_ylabel("GPA")
+
+        # Fix Y-axis to GPA scale
         self.ax.set_ylim(0, 4)
+
+        # X ticks
         self.ax.set_xticks(range(1, len(gpas) + 1))
+
         self.canvas.draw()
 
     def go_back(self):
