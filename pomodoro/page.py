@@ -1,4 +1,3 @@
-# ui.py
 import tkinter as tk
 from .constants import LIGHT_THEME, DARK_THEME, FONT_NAME
 from .timer_logic import start_timer, reset_timer, pause_timer, resume_timer, is_paused
@@ -67,7 +66,10 @@ class PomodoroPage(tk.Frame):
         self.start_button.config(
             bg=self.current_theme["button_bg"], fg=self.current_theme["button_fg"]
         )
-        self.reset_button.config(bg="#ff6f61", fg="white")
+        self.reset_button.config(
+            bg=self.current_theme["reset_bg"],
+            fg=self.current_theme["reset_fg"],
+)
 
     def build_ui(self):
         # Theme Toggle
@@ -107,6 +109,8 @@ class PomodoroPage(tk.Frame):
             height=220,
             bg=self.current_theme["canvas"],
             highlightthickness=0,
+            bd=0,
+            takefocus=0,
         )
         self.canvas.create_oval(
             10,
@@ -192,6 +196,7 @@ class PomodoroPage(tk.Frame):
                 self.current_theme,
                 self.work_entry,
                 self.break_entry,
+                self.start_button,
             ),
             width=8,
         )
@@ -227,6 +232,7 @@ class PomodoroPage(tk.Frame):
                     self.current_theme,
                     self.work_entry,
                     self.break_entry,
+                    self.start_button,
                 )
                 self.pause_button.config(text="⏸ Pause")
 
@@ -236,8 +242,8 @@ class PomodoroPage(tk.Frame):
             self,
             text="🔁 Reset",
             font=(FONT_NAME, 11),
-            bg="#ff6f61",
-            fg="white",
+            bg=self.current_theme["reset_bg"],
+            fg=self.current_theme["reset_fg"],
             command=lambda: reset_timer(
                 self.parent,
                 self.canvas,
@@ -249,6 +255,7 @@ class PomodoroPage(tk.Frame):
                 self.session_label,
                 self.minutes_label,
                 self.current_theme,
+                self.start_button,
             ),
             width=8,
         )

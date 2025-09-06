@@ -9,7 +9,6 @@ from gpa_calculator import GPACalculatorPage
 from pomodoro import PomodoroPage
 from reminder import ReminderPage
 
-
 class MultiToolApp(ctk.CTk):
     def __init__(self):
         super().__init__()
