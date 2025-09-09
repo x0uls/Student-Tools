@@ -47,14 +47,14 @@ def reset_timer(
     session_label,
     minutes_label,
     theme,
-    start_button,   # ✅ always the START button
+    start_button,  
     work_entry,
     break_entry,
 ):
     global reps, timer, is_paused, time_left, completed_focus_sessions, total_focus_minutes
     if timer:
         window.after_cancel(timer)
-        timer = None  # clear leftover callback
+        timer = None  
 
     reps = 0
     is_paused = False
@@ -145,7 +145,7 @@ def start_timer(
     work_entry_ref = work_entry
     break_entry_ref = break_entry
     start_button_ref = start_button
-    # Make the button actually skip the current session
+
     start_button.config(command=skip_current_session)
 
     # Reset skip tracking for this session
@@ -209,7 +209,7 @@ def start_timer(
         mode_label.config(text="💼 Focus", fg=theme["text"])
         quote_label.config(text=random.choice(WORK_QUOTES))
 
-    # ✅ Initialize display cleanly (no 00:00 flash)
+    # Initialize display cleanly (no 00:00 flash)
     time_left = total_time
     minutes = time_left // 60
     seconds = time_left % 60
