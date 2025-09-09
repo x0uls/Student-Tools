@@ -1,4 +1,3 @@
-# ui.py
 import tkinter as tk
 from .constants import LIGHT_THEME, DARK_THEME, FONT_NAME
 from .timer_logic import start_timer, reset_timer, pause_timer, resume_timer, is_paused
@@ -67,7 +66,19 @@ class PomodoroPage(tk.Frame):
         self.start_button.config(
             bg=self.current_theme["button_bg"], fg=self.current_theme["button_fg"]
         )
-        self.reset_button.config(bg="#ff6f61", fg="white")
+        self.reset_button.config(
+            bg=self.current_theme["reset_bg"],
+            fg=self.current_theme["reset_fg"],
+)
+        # Update hover bindings with new colors
+        for btn, hover, base in [
+            (self.start_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
+            (self.pause_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
+            (self.reset_button, self.current_theme["reset_bg_hover"], self.current_theme["reset_bg"]),
+        ]:
+            # Remove previous bindings by re-binding lambdas to new colors
+            btn.bind("<Enter>", lambda e, b=btn, c=hover: b.config(bg=c))
+            btn.bind("<Leave>", lambda e, b=btn, c=base: b.config(bg=c))
 
     def build_ui(self):
         # Theme Toggle
@@ -107,6 +118,8 @@ class PomodoroPage(tk.Frame):
             height=220,
             bg=self.current_theme["canvas"],
             highlightthickness=0,
+            bd=0,
+            takefocus=0,
         )
         self.canvas.create_oval(
             10,
@@ -179,6 +192,8 @@ class PomodoroPage(tk.Frame):
             font=(FONT_NAME, 11),
             bg=self.current_theme["button_bg"],
             fg=self.current_theme["button_fg"],
+            activebackground=self.current_theme["button_bg_hover"],
+            relief=tk.FLAT,
             command=lambda: start_timer(
                 self.parent,
                 self.canvas,
@@ -192,6 +207,7 @@ class PomodoroPage(tk.Frame):
                 self.current_theme,
                 self.work_entry,
                 self.break_entry,
+                self.start_button,
             ),
             width=8,
         )
@@ -203,6 +219,8 @@ class PomodoroPage(tk.Frame):
             font=(FONT_NAME, 11),
             bg=self.current_theme["button_bg"],
             fg=self.current_theme["button_fg"],
+            activebackground=self.current_theme["button_bg_hover"],
+            relief=tk.FLAT,
             width=8,
         )
         self.pause_button.grid(column=1, row=4, pady=10)
@@ -214,20 +232,7 @@ class PomodoroPage(tk.Frame):
                 pause_timer()
                 self.pause_button.config(text="▶ Resume")
             else:
-                resume_timer(
-                    self.parent,
-                    self.canvas,
-                    self.timer_text,
-                    self.progress_arc,
-                    self.mode_label,
-                    self.quote_label,
-                    self.check_marks,
-                    self.session_label,
-                    self.minutes_label,
-                    self.current_theme,
-                    self.work_entry,
-                    self.break_entry,
-                )
+                resume_timer()
                 self.pause_button.config(text="⏸ Pause")
 
         self.pause_button.config(command=toggle_pause)
@@ -236,8 +241,10 @@ class PomodoroPage(tk.Frame):
             self,
             text="🔁 Reset",
             font=(FONT_NAME, 11),
-            bg="#ff6f61",
-            fg="white",
+            bg=self.current_theme["reset_bg"],
+            fg=self.current_theme["reset_fg"],
+            activebackground=self.current_theme["reset_bg_hover"],
+            relief=tk.FLAT,
             command=lambda: reset_timer(
                 self.parent,
                 self.canvas,
@@ -249,6 +256,9 @@ class PomodoroPage(tk.Frame):
                 self.session_label,
                 self.minutes_label,
                 self.current_theme,
+                self.start_button,
+                self.work_entry,
+                self.break_entry,
             ),
             width=8,
         )
@@ -291,3 +301,14 @@ class PomodoroPage(tk.Frame):
             font=(FONT_NAME, 14),
         )
         self.check_marks.grid(column=1, row=8, pady=2)
+
+        # Hover effects
+        for btn, hover, base in [
+            (self.start_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
+            (self.pause_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
+            (self.reset_button, self.current_theme["reset_bg_hover"], self.current_theme["reset_bg"]),
+        ]:
+            btn.bind("<Enter>", lambda e, b=btn, c=hover: b.config(bg=c))
+            btn.bind("<Leave>", lambda e, b=btn, c=base: b.config(bg=c))
+
+    
