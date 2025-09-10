@@ -47,14 +47,14 @@ def reset_timer(
     session_label,
     minutes_label,
     theme,
-    start_button,  
+    start_button,   # ✅ always the START button
     work_entry,
     break_entry,
 ):
     global reps, timer, is_paused, time_left, completed_focus_sessions, total_focus_minutes
     if timer:
         window.after_cancel(timer)
-        timer = None  
+        timer = None  # clear leftover callback
 
     reps = 0
     is_paused = False
@@ -64,27 +64,27 @@ def reset_timer(
 
     canvas.itemconfig(timer_text, text="00:00")
     canvas.itemconfig(progress_arc, extent=0)
-    mode_label.config(text="🕓 Ready?", fg=theme["text"])
-    quote_label.config(text="Let's begin a session.")
-    check_marks.config(text="")
-    session_label.config(text="Completed Focus Sessions: 0")
-    minutes_label.config(text="Total Focus Minutes: 0")
+    mode_label.configure(text="🕓 Ready?", text_color=theme["text"])
+    quote_label.configure(text="Let's begin a session.")
+    check_marks.configure(text="")
+    session_label.configure(text="Completed Focus Sessions: 0")
+    minutes_label.configure(text="Total Focus Minutes: 0")
 
     # ✅ Restore Start button
-    start_button.config(
+    start_button.configure(
         state="normal",
-        text="▶ Start",
-        bg=theme["button_bg"],
-        fg=theme["button_fg"]
+        text="🚀 FOCUS",
+        fg_color=theme["button_bg"],
+        text_color=theme["button_fg"]
     )
     # Re-enable inputs
     try:
-        work_entry.config(state="normal")
-        break_entry.config(state="normal")
+        work_entry.configure(state="normal")
+        break_entry.configure(state="normal")
     except Exception:
         pass
     # Restore command to start
-    start_button.config(command=lambda: start_timer(
+    start_button.configure(command=lambda: start_timer(
         window,
         canvas,
         timer_text,
@@ -124,11 +124,11 @@ def start_timer(
         timer = None
 
     # ✅ Change to Skip button
-    start_button.config(
+    start_button.configure(
         state="normal",
-        text="⏭ Skip",
-        bg=theme["button_bg"],
-        fg=theme["button_fg"]
+        text="⏭ SKIP",
+        fg_color=theme["button_bg"],
+        text_color=theme["button_fg"]
     )
     # Store references for pause/resume/skip
     global window_ref, canvas_ref, timer_text_ref, progress_arc_ref, mode_label_ref, quote_label_ref, check_marks_ref, session_label_ref, minutes_label_ref, theme_ref, work_entry_ref, break_entry_ref, start_button_ref
@@ -145,8 +145,8 @@ def start_timer(
     work_entry_ref = work_entry
     break_entry_ref = break_entry
     start_button_ref = start_button
-
-    start_button.config(command=skip_current_session)
+    # Make the button actually skip the current session
+    start_button.configure(command=skip_current_session)
 
     # Reset skip tracking for this session
     skipped_current = False
@@ -190,26 +190,26 @@ def start_timer(
 
     # Disable inputs during an active session
     try:
-        work_entry.config(state="disabled")
-        break_entry.config(state="disabled")
+        work_entry.configure(state="disabled")
+        break_entry.configure(state="disabled")
     except Exception:
         pass
 
     # Session logic
     if reps % 8 == 0:
         total_time = LONG_BREAK_MIN * 60
-        mode_label.config(text="🌙 Long Break", fg=theme["text"])
-        quote_label.config(text=random.choice(BREAK_QUOTES))
+        mode_label.configure(text="🌙 Long Break", text_color=theme["text"])
+        quote_label.configure(text=random.choice(BREAK_QUOTES))
     elif reps % 2 == 0:
         total_time = break_min * 60
-        mode_label.config(text="☕ Break", fg=theme["text"])
-        quote_label.config(text=random.choice(BREAK_QUOTES))
+        mode_label.configure(text="☕ Break", text_color=theme["text"])
+        quote_label.configure(text=random.choice(BREAK_QUOTES))
     else:
         total_time = work_min * 60
-        mode_label.config(text="💼 Focus", fg=theme["text"])
-        quote_label.config(text=random.choice(WORK_QUOTES))
+        mode_label.configure(text="💼 Focus", text_color=theme["text"])
+        quote_label.configure(text=random.choice(WORK_QUOTES))
 
-    # Initialize display cleanly (no 00:00 flash)
+    # ✅ Initialize display cleanly (no 00:00 flash)
     time_left = total_time
     minutes = time_left // 60
     seconds = time_left % 60
@@ -271,7 +271,7 @@ def countdown(
                     add_min = max(0, skipped_elapsed_seconds // 60)
                     if add_min > 0:
                         total_focus_minutes += add_min
-                        minutes_label.config(text=f"Total Focus Minutes: {total_focus_minutes}")
+                        minutes_label.configure(text=f"Total Focus Minutes: {total_focus_minutes}")
                 else:
                     completed_focus_sessions += 1
                     # Safe add to total focus minutes
@@ -280,11 +280,11 @@ def countdown(
                     except Exception:
                         add_min = DEFAULT_WORK_MIN
                     total_focus_minutes += max(1, min(120, add_min))
-                    check_marks.config(text="✔" * completed_focus_sessions)
-                    session_label.config(
+                    check_marks.configure(text="✔" * completed_focus_sessions)
+                    session_label.configure(
                         text=f"Completed Focus Sessions: {completed_focus_sessions}"
                     )
-                    minutes_label.config(text=f"Total Focus Minutes: {total_focus_minutes}")
+                    minutes_label.configure(text=f"Total Focus Minutes: {total_focus_minutes}")
 
             # Auto-start next session
             start_timer(

@@ -16,22 +16,7 @@ BREAK_QUOTES = [
     "Good job. Take a rest 🧘"
 ]
 
-LIGHT_THEME = {
-    "bg": "#fcf6f5",
-    "text": "#2e2e2e",
-    "canvas": "#fcf6f5",
-    "entry_bg": "white",
-    "button_bg": "#88e1f2",
-    "button_bg_hover": "#6fd3e8",
-    "button_fg": "white",
-    "arc": "#88e1f2",
-    "outline": "#eee",
-    "reset_bg": "#ff6f61",
-    "reset_bg_hover": "#ff5a4a",
-    "reset_fg": "white",
-}
-
-DARK_THEME = {
+THEME = {
     "bg": "#1e1e1e",
     "text": "#f0f0f0",
     "canvas": "#1e1e1e",

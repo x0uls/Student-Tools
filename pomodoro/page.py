@@ -1,18 +1,17 @@
 import tkinter as tk
-from .constants import LIGHT_THEME, DARK_THEME, FONT_NAME
+import customtkinter as ctk
+from .constants import THEME
 from .timer_logic import start_timer, reset_timer, pause_timer, resume_timer, is_paused
 
 
-class PomodoroPage(tk.Frame):
+class PomodoroPage(ctk.CTkFrame):
     def __init__(self, parent):
-        super().__init__(parent, width=360, height=640, bg="white")
+        self.current_theme = THEME
+        super().__init__(parent, width=360, height=640, fg_color=self.current_theme["bg"])
 
         # Lock frame size
         self.pack_propagate(False)
         self.grid_propagate(False)
-
-        self.is_dark_mode = False
-        self.current_theme = LIGHT_THEME
         self.parent = parent
 
         # Define strict grid
@@ -22,92 +21,15 @@ class PomodoroPage(tk.Frame):
         # Build UI
         self.build_ui()
 
-    def toggle_theme(self):
-        self.is_dark_mode = not self.is_dark_mode
-        self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
-
-        # Update colors
-        self.config(bg=self.current_theme["bg"])
-        self.canvas.config(bg=self.current_theme["canvas"])
-        self.canvas.itemconfig(self.progress_arc, outline=self.current_theme["arc"])
-        self.canvas.itemconfig(self.timer_text, fill=self.current_theme["text"])
-        self.canvas.itemconfig("bgcircle", outline=self.current_theme["outline"])
-
-        self.theme_toggle.config(
-            text="🌙" if self.is_dark_mode else "☀️",
-            bg=self.current_theme["bg"],
-            fg="white" if self.is_dark_mode else "black",
-            activebackground=self.current_theme["bg"],
-            activeforeground="white" if self.is_dark_mode else "black",
-            selectcolor=self.current_theme["bg"],
-        )
-
-        for widget in [
-            self.mode_label,
-            self.work_label,
-            self.break_label,
-            self.quote_label,
-            self.check_marks,
-            self.session_label,
-            self.minutes_label,
-        ]:
-            widget.config(bg=self.current_theme["bg"], fg=self.current_theme["text"])
-
-        self.work_entry.config(
-            bg=self.current_theme["entry_bg"],
-            fg=self.current_theme["text"],
-            insertbackground=self.current_theme["text"],
-        )
-        self.break_entry.config(
-            bg=self.current_theme["entry_bg"],
-            fg=self.current_theme["text"],
-            insertbackground=self.current_theme["text"],
-        )
-        self.start_button.config(
-            bg=self.current_theme["button_bg"], fg=self.current_theme["button_fg"]
-        )
-        self.reset_button.config(
-            bg=self.current_theme["reset_bg"],
-            fg=self.current_theme["reset_fg"],
-)
-        # Update hover bindings with new colors
-        for btn, hover, base in [
-            (self.start_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
-            (self.pause_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
-            (self.reset_button, self.current_theme["reset_bg_hover"], self.current_theme["reset_bg"]),
-        ]:
-            # Remove previous bindings by re-binding lambdas to new colors
-            btn.bind("<Enter>", lambda e, b=btn, c=hover: b.config(bg=c))
-            btn.bind("<Leave>", lambda e, b=btn, c=base: b.config(bg=c))
 
     def build_ui(self):
-        # Theme Toggle
-        self.theme_toggle = tk.Checkbutton(
-            self,
-            text="☀️",
-            bg=self.current_theme["bg"],
-            fg="black",
-            font=(FONT_NAME, 12, "bold"),
-            selectcolor=self.current_theme["bg"],
-            activebackground=self.current_theme["bg"],
-            activeforeground="black",
-            bd=0,
-            highlightthickness=0,
-            indicatoron=False,
-            cursor="hand2",
-            padx=5,
-            pady=2,
-            command=self.toggle_theme,
-        )
-        self.theme_toggle.place(relx=1.0, x=-10, y=10, anchor="ne")
 
         # Mode Label
-        self.mode_label = tk.Label(
+        self.mode_label = ctk.CTkLabel(
             self,
             text="🕓 Ready?",
-            fg=self.current_theme["text"],
-            bg=self.current_theme["bg"],
-            font=(FONT_NAME, 22, "bold"),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=22, weight="bold"),
         )
         self.mode_label.grid(column=0, row=0, columnspan=3, pady=(10, 0), sticky="n")
 
@@ -146,54 +68,57 @@ class PomodoroPage(tk.Frame):
             110,
             text="00:00",
             fill=self.current_theme["text"],
-            font=(FONT_NAME, 34, "bold"),
+            font=ctk.CTkFont(size=34, weight="bold"),
         )
         self.canvas.grid(column=0, row=1, columnspan=3, pady=(5, 5))
 
         # Labels & Inputs
-        self.work_label = tk.Label(
+        self.work_label = ctk.CTkLabel(
             self,
             text="Focus (min)",
-            bg=self.current_theme["bg"],
-            fg=self.current_theme["text"],
-            font=(FONT_NAME, 10),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=10),
         )
-        self.work_label.grid(column=0, row=2, pady=2)
-        self.work_entry = tk.Entry(
+        self.work_label.grid(column=0, row=2, pady=(2, 0))
+        self.work_entry = ctk.CTkEntry(
             self,
-            width=5,
-            bg=self.current_theme["entry_bg"],
-            fg=self.current_theme["text"],
+            width=50,
+            height=28,
+            fg_color=self.current_theme["entry_bg"],
+            text_color=self.current_theme["text"],
+            placeholder_text="25",
+            corner_radius=6,
         )
         self.work_entry.insert(0, "25")
-        self.work_entry.grid(column=0, row=3, pady=2)
+        self.work_entry.grid(column=0, row=3, pady=(0, 2))
 
-        self.break_label = tk.Label(
+        self.break_label = ctk.CTkLabel(
             self,
             text="Break (min)",
-            bg=self.current_theme["bg"],
-            fg=self.current_theme["text"],
-            font=(FONT_NAME, 10),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=10),
         )
-        self.break_label.grid(column=2, row=2, pady=2)
-        self.break_entry = tk.Entry(
+        self.break_label.grid(column=2, row=2, pady=(2, 0))
+        self.break_entry = ctk.CTkEntry(
             self,
-            width=5,
-            bg=self.current_theme["entry_bg"],
-            fg=self.current_theme["text"],
+            width=50,
+            height=28,
+            fg_color=self.current_theme["entry_bg"],
+            text_color=self.current_theme["text"],
+            placeholder_text="5",
+            corner_radius=6,
         )
         self.break_entry.insert(0, "5")
-        self.break_entry.grid(column=2, row=3, pady=2)
+        self.break_entry.grid(column=2, row=3, pady=(0, 2))
 
         # Buttons
-        self.start_button = tk.Button(
+        self.start_button = ctk.CTkButton(
             self,
-            text="▶ Start",
-            font=(FONT_NAME, 11),
-            bg=self.current_theme["button_bg"],
-            fg=self.current_theme["button_fg"],
-            activebackground=self.current_theme["button_bg_hover"],
-            relief=tk.FLAT,
+            text="🚀 FOCUS",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color=self.current_theme["button_bg"],
+            text_color=self.current_theme["button_fg"],
+            hover_color=self.current_theme["button_bg_hover"],
             command=lambda: start_timer(
                 self.parent,
                 self.canvas,
@@ -209,42 +134,44 @@ class PomodoroPage(tk.Frame):
                 self.break_entry,
                 self.start_button,
             ),
-            width=8,
+            width=70,
+            height=28,
+            corner_radius=8,
         )
-        self.start_button.grid(column=0, row=4, pady=10)
+        self.start_button.grid(column=0, row=4, pady=(15, 5), padx=(10, 5))
 
-        self.pause_button = tk.Button(
+        self.pause_button = ctk.CTkButton(
             self,
-            text="⏸ Pause",
-            font=(FONT_NAME, 11),
-            bg=self.current_theme["button_bg"],
-            fg=self.current_theme["button_fg"],
-            activebackground=self.current_theme["button_bg_hover"],
-            relief=tk.FLAT,
-            width=8,
+            text="⏸ PAUSE",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color="#4A90E2",
+            text_color="white",
+            hover_color="#357ABD",
+            width=70,
+            height=28,
+            corner_radius=8,
         )
-        self.pause_button.grid(column=1, row=4, pady=10)
+        self.pause_button.grid(column=1, row=4, pady=(15, 5), padx=5)
 
         def toggle_pause():
             from .timer_logic import is_paused
 
             if not is_paused:
                 pause_timer()
-                self.pause_button.config(text="▶ Resume")
+                self.pause_button.configure(text="▶ RESUME", fg_color="#4A90E2", text_color="white")
             else:
                 resume_timer()
-                self.pause_button.config(text="⏸ Pause")
+                self.pause_button.configure(text="⏸ PAUSE", fg_color="#4A90E2", text_color="white")
 
-        self.pause_button.config(command=toggle_pause)
+        self.pause_button.configure(command=toggle_pause)
 
-        self.reset_button = tk.Button(
+        self.reset_button = ctk.CTkButton(
             self,
-            text="🔁 Reset",
-            font=(FONT_NAME, 11),
-            bg=self.current_theme["reset_bg"],
-            fg=self.current_theme["reset_fg"],
-            activebackground=self.current_theme["reset_bg_hover"],
-            relief=tk.FLAT,
+            text="🔄 RESET",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color=self.current_theme["reset_bg"],
+            text_color=self.current_theme["reset_fg"],
+            hover_color=self.current_theme["reset_bg_hover"],
             command=lambda: reset_timer(
                 self.parent,
                 self.canvas,
@@ -260,55 +187,46 @@ class PomodoroPage(tk.Frame):
                 self.work_entry,
                 self.break_entry,
             ),
-            width=8,
+            width=70,
+            height=28,
+            corner_radius=8,
         )
-        self.reset_button.grid(column=2, row=4, pady=10)
+        self.reset_button.grid(column=2, row=4, pady=(15, 5), padx=(5, 10))
 
         # Info Labels
-        self.quote_label = tk.Label(
+        self.quote_label = ctk.CTkLabel(
             self,
             text="Let's begin a session.",
-            fg=self.current_theme["text"],
-            bg=self.current_theme["bg"],
-            font=(FONT_NAME, 11, "italic"),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=11, slant="italic"),
             wraplength=300,
         )
         self.quote_label.grid(column=0, row=5, columnspan=3, pady=(5, 5))
 
-        self.session_label = tk.Label(
+        self.session_label = ctk.CTkLabel(
             self,
             text="Completed Focus Sessions: 0",
-            fg=self.current_theme["text"],
-            bg=self.current_theme["bg"],
-            font=(FONT_NAME, 10, "bold"),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=10, weight="bold"),
         )
         self.session_label.grid(column=0, row=6, columnspan=3, pady=2)
 
-        self.minutes_label = tk.Label(
+        self.minutes_label = ctk.CTkLabel(
             self,
             text="Total Focus Minutes: 0",
-            fg=self.current_theme["text"],
-            bg=self.current_theme["bg"],
-            font=(FONT_NAME, 10, "bold"),
+            text_color=self.current_theme["text"],
+            font=ctk.CTkFont(size=10, weight="bold"),
         )
         self.minutes_label.grid(column=0, row=7, columnspan=3, pady=2)
 
-        self.check_marks = tk.Label(
+        self.check_marks = ctk.CTkLabel(
             self,
             text="",
-            fg=self.current_theme["arc"],
-            bg=self.current_theme["bg"],
-            font=(FONT_NAME, 14),
+            text_color=self.current_theme["arc"],
+            font=ctk.CTkFont(size=14),
         )
         self.check_marks.grid(column=1, row=8, pady=2)
 
-        # Hover effects
-        for btn, hover, base in [
-            (self.start_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
-            (self.pause_button, self.current_theme["button_bg_hover"], self.current_theme["button_bg"]),
-            (self.reset_button, self.current_theme["reset_bg_hover"], self.current_theme["reset_bg"]),
-        ]:
-            btn.bind("<Enter>", lambda e, b=btn, c=hover: b.config(bg=c))
-            btn.bind("<Leave>", lambda e, b=btn, c=base: b.config(bg=c))
+        # CustomTkinter buttons handle hover effects automatically
 
     
