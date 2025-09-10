@@ -7,7 +7,7 @@ import json
 import os
 import threading
 import time
-import sys
+
 
 class Reminder:
     """
@@ -28,7 +28,6 @@ class Reminder:
                 now = datetime.now()
                 wait_seconds = (self.remind_time - now).total_seconds()
                 if wait_seconds > 0:
-                    # Sleep only until the next reminder or check every second
                     time.sleep(min(wait_seconds, 1))
                     continue
                 if self.callback:
@@ -44,6 +43,7 @@ class Reminder:
         self._stop_event.set()
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=1)
+
 
 class ReminderPage(ctk.CTkFrame):
     """
@@ -68,56 +68,177 @@ class ReminderPage(ctk.CTkFrame):
         self.msg_entry = ctk.CTkEntry(self.scrollable_frame, width=300, placeholder_text="What should I remind you?")
         self.msg_entry.pack(pady=5)
 
-        # Date picker (set background to grey)
+        # Date selector (themed entry + calendar button)
         ctk.CTkLabel(self.scrollable_frame, text="Date:").pack()
         date_row = ctk.CTkFrame(self.scrollable_frame)
         date_row.pack(pady=5)
         self.date_var = tk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
         self.date_entry = ctk.CTkEntry(date_row, width=180, textvariable=self.date_var, placeholder_text="yyyy-mm-dd")
         self.date_entry.pack(side="left", padx=(0, 6))
+        
+        # Auto-format date with dashes and validation
+        def format_date(event=None):
+            current = self.date_var.get()
+            # Remove all non-digits
+            digits_only = ''.join(filter(str.isdigit, current))
+            
+            # Limit to 8 digits (YYYYMMDD)
+            if len(digits_only) > 8:
+                digits_only = digits_only[:8]
+            
+            # Helper functions for validation
+            def add_month_part(month_first, valid_seconds):
+                if len(digits_only) >= 6:
+                    month_second = digits_only[5]
+                    if month_second in valid_seconds:
+                        return formatted + "-" + month_first + month_second
+                    else:
+                        return formatted + "-" + month_first
+                else:
+                    return formatted + "-" + month_first
+            
+            def add_day_part(day_first, valid_seconds, max_day=None):
+                if len(digits_only) >= 8:
+                    day_second = digits_only[7]
+                    if day_second in valid_seconds:
+                        # Additional validation for max_day if provided
+                        if max_day is not None:
+                            day_value = int(day_first + day_second)
+                            if day_value > max_day:
+                                return formatted + "-" + day_first
+                        return formatted + "-" + day_first + day_second
+                    else:
+                        return formatted + "-" + day_first
+                else:
+                    return formatted + "-" + day_first
+            
+            # Validate and format with dashes
+            formatted = ""
+            if len(digits_only) >= 4:
+                # Year (first 4 digits)
+                formatted = digits_only[:4]
+                
+                if len(digits_only) >= 5:
+                    # Month validation
+                    month_first = digits_only[4]
+                    if month_first == '0':
+                        # If starts with 0, next digit must be 1-9
+                        formatted = add_month_part(month_first, '123456789')
+                    elif month_first == '1':
+                        # If starts with 1, next digit must be 0-2
+                        formatted = add_month_part(month_first, '012')
+                    else:
+                        return
+                    
+                    # Day validation (if we have month)
+                    if len(digits_only) >= 7:
+                        # Get the month to determine max day
+                        month_str = digits_only[4:6]
+                        month_num = int(month_str)
+                        
+                        # Determine max day based on month
+                        max_day = {1: 31, 3: 31, 5: 31, 7: 31, 8: 31, 10: 31, 12: 31,
+                                  4: 30, 6: 30, 9: 30, 11: 30, 2: 28}.get(month_num)
+                        if max_day is None:
+                            return
+                        
+                        day_first = digits_only[6]
+                        if day_first == '0':
+                            formatted = add_day_part(day_first, '123456789', max_day)
+                        elif day_first in '12':
+                            formatted = add_day_part(day_first, '0123456789', max_day)
+                        elif day_first == '3':
+                            if max_day >= 30:
+                                valid_seconds = '0' if max_day == 30 else '01'
+                                formatted = add_day_part(day_first, valid_seconds, max_day)
+                            else:
+                                return
+                        else:
+                            return
+                    elif len(digits_only) == 6:
+                        formatted += "-"
+                else:
+                    # Partial month input
+                    month_first = digits_only[4]
+                    if month_first in '01':
+                        formatted += "-" + month_first
+                    else:
+                        return
+            else:
+                formatted = digits_only
+            
+            # Only update if different to avoid cursor jumping
+            if formatted != current:
+                self.date_var.set(formatted)
+        
+        self.date_entry.bind('<KeyRelease>', format_date)
         ctk.CTkButton(date_row, text="📅", width=40, command=self.open_calendar).pack(side="left")
 
-        # Time picker (hour and minute comboboxes)
+        # Time picker (simple entry fields)
         ctk.CTkLabel(self.scrollable_frame, text="Time:").pack()
         time_frame = ctk.CTkFrame(self.scrollable_frame)
         time_frame.pack(pady=5)
-        self.hour_var = tk.StringVar(value="08")
+        
+        # 12-hour format time entry with AM/PM
+        self.hour_var = tk.StringVar(value="8")
         self.minute_var = tk.StringVar(value="00")
-        # Keep compact comboboxes
-        self.hour_box = ctk.CTkComboBox(time_frame, variable=self.hour_var, width=70, values=[f"{i:02d}" for i in range(24)])
-        self.hour_box.pack(side="left", padx=(0,4))
-        ctk.CTkLabel(time_frame, text=":").pack(side="left")
-        self.minute_box = ctk.CTkComboBox(time_frame, variable=self.minute_var, width=70, values=[f"{i:02d}" for i in range(60)])
-        self.minute_box.pack(side="left", padx=(4,0))
+        self.ampm_var = tk.StringVar(value="AM")
+        
+        # Validation functions
+        def _validate_range(proposed_value, min_val, max_val):
+            if not proposed_value:
+                return True
+            return proposed_value.isdigit() and min_val <= int(proposed_value) <= max_val
+        
+        def _validate_hour(proposed_value):
+            return _validate_range(proposed_value, 1, 12)
+        
+        def _validate_minute(proposed_value):
+            return _validate_range(proposed_value, 0, 59)
+        
+        # Hour entry (1-12)
+        hour_vcmd = self.register(_validate_hour)
+        self.hour_entry = ctk.CTkEntry(
+            time_frame, 
+            textvariable=self.hour_var, 
+            width=60,
+            placeholder_text="8"
+        )
+        self.hour_entry.configure(validate="key", validatecommand=(hour_vcmd, "%P"))
+        self.hour_entry.pack(side="left", padx=(0, 5))
+        
+        ctk.CTkLabel(time_frame, text=":").pack(side="left", padx=2)
+        
+        # Minute entry (00-59)
+        minute_vcmd = self.register(_validate_minute)
+        self.minute_entry = ctk.CTkEntry(
+            time_frame, 
+            textvariable=self.minute_var, 
+            width=60,
+            placeholder_text="00"
+        )
+        self.minute_entry.configure(validate="key", validatecommand=(minute_vcmd, "%P"))
+        self.minute_entry.pack(side="left", padx=(5, 5))
+        
+        # AM/PM selection
+        self.ampm_combo = ctk.CTkComboBox(
+            time_frame,
+            variable=self.ampm_var,
+            width=60,
+            values=["AM", "PM"],
+            fg_color=("gray75", "gray25"),
+            button_color=("gray70", "gray30"),
+            button_hover_color=("gray60", "gray40")
+        )
+        self.ampm_combo.pack(side="left", padx=(5, 0))
 
-        # Mouse-wheel scrolling to change values
-        def _bind_scroll(box, var, max_value):
-            def _wheel(delta):
-                try:
-                    curr = int(var.get())
-                except Exception:
-                    curr = 0
-                step = -1 if delta > 0 else 1
-                new_val = (curr + step) % (max_value + 1)
-                text = f"{new_val:02d}"
-                var.set(text)
-                try:
-                    box.set(text)
-                except Exception:
-                    pass
-            box.bind("<MouseWheel>", lambda e: _wheel(getattr(e, "delta", 0)))
-            # Linux support
-            box.bind("<Button-4>", lambda e: _wheel(120))
-            box.bind("<Button-5>", lambda e: _wheel(-120))
-
-        _bind_scroll(self.hour_box, self.hour_var, 23)
-        _bind_scroll(self.minute_box, self.minute_var, 59)
 
         # Remind after (minutes) input
         ctk.CTkLabel(self.scrollable_frame, text="Remind After (minutes):").pack()
+
         # Validation: only allow blank (for editing) or positive integers
         def _validate_positive(proposed_value):
-            if proposed_value == "":
+            if not proposed_value:
                 return True
             return proposed_value.isdigit() and int(proposed_value) > 0
 
@@ -134,12 +255,11 @@ class ReminderPage(ctk.CTkFrame):
         ctk.CTkCheckBox(repeat_frame, text="Repeat", variable=self.repeat_var, command=self._on_repeat_toggle).pack(side="left")
         ctk.CTkLabel(repeat_frame, text="every").pack(side="left", padx=(10, 0))
         # Validation for repeat interval: positive integers only
-        self._repeat_vcmd = self.register(lambda v: (v == "") or (v.isdigit() and int(v) > 0))
+        self._repeat_vcmd = self.register(lambda v: not v or (v.isdigit() and int(v) > 0))
         self.repeat_interval_entry = ctk.CTkEntry(repeat_frame, width=60, placeholder_text="min")
         self.repeat_interval_entry.configure(validate="key", validatecommand=(self._repeat_vcmd, "%P"))
         self.repeat_interval_entry.pack(side="left", padx=5)
         ctk.CTkLabel(repeat_frame, text="minutes").pack(side="left")
-
         # Initialize repeat interval disabled by default
         self._on_repeat_toggle()
 
@@ -154,7 +274,7 @@ class ReminderPage(ctk.CTkFrame):
         self.reminder_list.pack(padx=8, pady=8, fill="x")
 
         self.reminder_vars = []      # BooleanVar for each reminder
-        self.reminder_widgets = []   # (Checkbutton, label) for each reminder
+        self.reminder_widgets = []   # Checkbutton widget for each reminder row
         self.reminders = []          # (Reminder instance, display_text)
 
         # Delete button for selected reminders
@@ -166,7 +286,6 @@ class ReminderPage(ctk.CTkFrame):
         )
         self.delete_btn.pack(pady=8)
 
-        # CTkScrollableFrame handles scrolling natively
         # Load saved reminders from disk
         self.load_reminders()
 
@@ -182,20 +301,15 @@ class ReminderPage(ctk.CTkFrame):
 
         # Play notification sound (non-blocking if possible)
         try:
-            # Prefer winsound on Windows
+            import sys
             if sys.platform.startswith("win"):
                 import winsound
-                # Try system asterisk sound; fallback to simple beep
                 try:
                     winsound.MessageBeep(winsound.MB_ICONASTERISK)
                 except Exception:
                     winsound.Beep(1000, 120)
             else:
-                # Cross-platform fallback to Tk bell
-                try:
-                    parent.bell()
-                except Exception:
-                    pass
+                parent.bell()
         except Exception:
             pass
 
@@ -203,9 +317,6 @@ class ReminderPage(ctk.CTkFrame):
         toast.overrideredirect(True)
         try:
             toast.attributes("-topmost", True)
-        except Exception:
-            pass
-        try:
             toast.attributes("-alpha", 0.0)
         except Exception:
             pass
@@ -222,7 +333,7 @@ class ReminderPage(ctk.CTkFrame):
         dismiss_btn = ctk.CTkButton(btn_row, text="Dismiss", width=90, command=lambda: _close(True))
         dismiss_btn.pack(side="right", padx=6)
 
-        # Geometry: bottom-right INSIDE the app window, stack upward
+        # Geometry: bottom-right inside the app window, stack upward
         parent.update_idletasks()
         px = parent.winfo_rootx()
         py = parent.winfo_rooty()
@@ -249,10 +360,7 @@ class ReminderPage(ctk.CTkFrame):
         def animate_step(alpha=0.0, y=start_y):
             try:
                 toast.geometry(f"{width}x{height}+{x}+{int(y)}")
-                try:
-                    toast.attributes("-alpha", alpha)
-                except Exception:
-                    pass
+                toast.attributes("-alpha", alpha)
             except Exception:
                 return
 
@@ -264,7 +372,6 @@ class ReminderPage(ctk.CTkFrame):
                 schedule_auto_close()
 
         def schedule_auto_close():
-            # Auto close after delay unless mouse enters
             toast.bind("<Enter>", lambda e: cancel_auto_close())
             toast.bind("<Leave>", lambda e: schedule_again())
             record["auto_id"] = parent.after(4500, lambda: _close(False))
@@ -272,10 +379,7 @@ class ReminderPage(ctk.CTkFrame):
         def cancel_auto_close():
             aid = record.get("auto_id")
             if aid:
-                try:
-                    parent.after_cancel(aid)
-                except Exception:
-                    pass
+                parent.after_cancel(aid)
                 record["auto_id"] = None
 
         def schedule_again():
@@ -285,19 +389,14 @@ class ReminderPage(ctk.CTkFrame):
         def _close(user):
             # If user dismissed and this is a repeating reminder, cancel it and remove from list
             if user and getattr(reminder, "repeat", False):
-                try:
-                    reminder.stop()
-                except Exception:
-                    pass
+                reminder.stop()
                 self._remove_reminder_instance(reminder)
             cancel_auto_close()
+
             # Fade-out and slide-down
             def fade_out(alpha=1.0, y=target_y):
                 try:
-                    try:
-                        toast.attributes("-alpha", alpha)
-                    except Exception:
-                        pass
+                    toast.attributes("-alpha", alpha)
                     toast.geometry(f"{width}x{height}+{x}+{int(y)}")
                 except Exception:
                     return _cleanup()
@@ -309,11 +408,7 @@ class ReminderPage(ctk.CTkFrame):
                     _cleanup()
 
             def _cleanup():
-                try:
-                    toast.destroy()
-                except Exception:
-                    pass
-                # Remove from stack and shift others down
+                toast.destroy()
                 if record in self._active_toasts:
                     idx = self._active_toasts.index(record)
                     self._active_toasts.pop(idx)
@@ -322,7 +417,6 @@ class ReminderPage(ctk.CTkFrame):
             fade_out()
 
         def _restack(start_idx):
-            # Move the toasts above the removed one down by one slot
             for i in range(start_idx, len(self._active_toasts)):
                 rec = self._active_toasts[i]
                 rec["target_y"] = rec["target_y"] + height + gap
@@ -333,7 +427,6 @@ class ReminderPage(ctk.CTkFrame):
             tx = rec["x"]
             ty = rec["target_y"]
             try:
-                # get current y from geometry
                 geo = tw.geometry()
                 parts = geo.split("+")
                 cy = int(parts[-1]) if len(parts) >= 3 else ty
@@ -348,10 +441,7 @@ class ReminderPage(ctk.CTkFrame):
                     return
                 parent.after(16, lambda: _animate_to(rec))
             else:
-                try:
-                    tw.geometry(f"{width}x{height}+{tx}+{int(ty)}")
-                except Exception:
-                    pass
+                tw.geometry(f"{width}x{height}+{tx}+{int(ty)}")
 
         animate_step()
 
@@ -360,28 +450,17 @@ class ReminderPage(ctk.CTkFrame):
             idx = next(i for i, (r, _) in enumerate(self.reminders) if r is reminder_instance)
         except StopIteration:
             return
-        try:
-            r, _ = self.reminders[idx]
-            try:
-                r.stop()
-            except Exception:
-                pass
-            self.reminders.pop(idx)
-        except Exception:
-            pass
-        # Remove UI checkbox and var
-        try:
-            self.reminder_vars.pop(idx)
-        except Exception:
-            pass
-        try:
-            cb = self.reminder_widgets.pop(idx)
-            try:
-                cb.destroy()
-            except Exception:
-                pass
-        except Exception:
-            pass
+        
+        # Stop and remove reminder
+        reminder, _ = self.reminders[idx]
+        reminder.stop()
+        self.reminders.pop(idx)
+        
+        # Remove UI elements
+        self.reminder_vars.pop(idx)
+        checkbox = self.reminder_widgets.pop(idx)
+        checkbox.destroy()
+        
         self.update_delete_button_state()
         self.save_reminders()
 
@@ -412,7 +491,6 @@ class ReminderPage(ctk.CTkFrame):
             with open(self._storage_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception:
-            # Silent fail to avoid interrupting UI
             pass
 
     def load_reminders(self):
@@ -433,12 +511,10 @@ class ReminderPage(ctk.CTkFrame):
                 interval_minutes = int(item.get("interval_minutes", 0))
 
                 if repeat and interval_minutes > 0:
-                    # roll forward to next future occurrence
                     interval = timedelta(minutes=interval_minutes)
                     while remind_time <= now:
                         remind_time += interval
                 else:
-                    # skip past one-time reminders
                     if remind_time <= now:
                         continue
 
@@ -478,7 +554,22 @@ class ReminderPage(ctk.CTkFrame):
             remind_time = None
             if date_str and hour and minute:
                 try:
-                    remind_time = datetime.strptime(f"{date_str} {hour}:{minute}", "%Y-%m-%d %H:%M")    
+                    # Convert 12-hour format to 24-hour format
+                    ampm = self.ampm_var.get()
+                    hour_int = int(hour)
+                    
+                    # Convert to 24-hour format
+                    if ampm == "PM" and hour_int != 12:
+                        hour_int += 12
+                    elif ampm == "AM" and hour_int == 12:
+                        hour_int = 0
+                    
+                    # Validate hour and minute ranges (already validated by entry validation)
+                    if not hour.isdigit() or not minute.isdigit():
+                        messagebox.showerror("Error", "Please enter valid hour and minute values.")
+                        return
+                    
+                    remind_time = datetime.strptime(f"{date_str} {hour_int:02d}:{minute}", "%Y-%m-%d %H:%M")    
                 except ValueError:
                     messagebox.showerror("Error", "Invalid date or time format.")
                     return
@@ -532,7 +623,6 @@ class ReminderPage(ctk.CTkFrame):
             # Update delete button state after adding a new reminder
             self.update_delete_button_state()
 
-            # No success popups after creating a reminder
             # Persist reminders
             self.save_reminders()
 
@@ -590,93 +680,25 @@ class ReminderPage(ctk.CTkFrame):
         ctk.CTkButton(btn_row, text="Cancel", command=self._cal_win.destroy, width=80).pack(side="left", padx=5)
 
     def _on_calendar_ok(self):
-        try:
-            selected = self._calendar.get_date()
-            # tkcalendar returns string in the specified pattern
-            self.date_var.set(selected)
-        finally:
-            if hasattr(self, "_cal_win") and self._cal_win is not None and self._cal_win.winfo_exists():
-                self._cal_win.destroy()
+        selected = self._calendar.get_date()
+        self.date_var.set(selected)
+        if hasattr(self, "_cal_win") and self._cal_win is not None and self._cal_win.winfo_exists():
+            self._cal_win.destroy()
 
     def _on_repeat_toggle(self):
         state = "normal" if self.repeat_var.get() else "disabled"
-        try:
-            self.repeat_interval_entry.configure(state=state)
-        except Exception:
-            pass
+        self.repeat_interval_entry.configure(state=state)
 
-    # --- Scrollable time picker (wheel-style) ---
-    def open_time_picker(self):
-        if hasattr(self, "_time_win") and self._time_win is not None and self._time_win.winfo_exists():
-            self._time_win.lift()
-            return
-        self._time_win = ctk.CTkToplevel(self)
-        self._time_win.title("Select Time")
-        self._time_win.resizable(False, False)
-
-        container = ctk.CTkFrame(self._time_win)
-        container.pack(padx=10, pady=10)
-
-        # Hour list
-        h_frame = ctk.CTkFrame(container)
-        h_frame.pack(side="left", padx=6)
-        ctk.CTkLabel(h_frame, text="Hour").pack()
-        self._hour_list = tk.Listbox(h_frame, height=8, exportselection=False)
-        for i in range(24):
-            self._hour_list.insert("end", f"{i:02d}")
-        self._hour_list.pack()
-
-        # Minute list
-        m_frame = ctk.CTkFrame(container)
-        m_frame.pack(side="left", padx=6)
-        ctk.CTkLabel(m_frame, text="Minute").pack()
-        self._minute_list = tk.Listbox(m_frame, height=8, exportselection=False)
-        for i in range(60):
-            self._minute_list.insert("end", f"{i:02d}")
-        self._minute_list.pack()
-
-        # Preselect current values
-        try:
-            self._hour_list.selection_set(int(self.hour_var.get()))
-            self._hour_list.see(int(self.hour_var.get()))
-        except Exception:
-            pass
-        try:
-            self._minute_list.selection_set(int(self.minute_var.get()))
-            self._minute_list.see(int(self.minute_var.get()))
-        except Exception:
-            pass
-
-        # Buttons
-        btn_row = ctk.CTkFrame(self._time_win)
-        btn_row.pack(pady=(8, 10))
-        ctk.CTkButton(btn_row, text="OK", width=80, command=self._on_time_ok).pack(side="left", padx=5)
-        ctk.CTkButton(btn_row, text="Cancel", width=80, command=self._time_win.destroy).pack(side="left", padx=5)
-
-    def _on_time_ok(self):
-        try:
-            sel_h = self._hour_list.get(self._hour_list.curselection())
-            sel_m = self._minute_list.get(self._minute_list.curselection())
-            self.hour_var.set(sel_h)
-            self.minute_var.set(sel_m)
-            self.hour_box.set(sel_h)
-            self.minute_box.set(sel_m)
-        finally:
-            if hasattr(self, "_time_win") and self._time_win is not None and self._time_win.winfo_exists():
-                self._time_win.destroy()
 
     def update_delete_button_state(self):
-        # Enable delete button only if any reminder checkbox is ticked
         any_selected = any(var.get() for var in self.reminder_vars)
         self.delete_btn.configure(state="normal" if any_selected else "disabled")
 
     def delete_selected_reminder(self):
-        # Find checked reminders
         to_delete = [i for i, var in enumerate(self.reminder_vars) if var.get()]
         if not to_delete:
             messagebox.showwarning("Warning", "Please tick reminder(s) to delete.")
             return
-        # Delete without confirmation popup per request
         # Delete from highest index to lowest to avoid shifting issues
         for idx in sorted(to_delete, reverse=True):
             reminder, display_text = self.reminders[idx]
