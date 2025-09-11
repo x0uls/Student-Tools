@@ -16,38 +16,19 @@ BREAK_QUOTES = [
     "Good job. Take a rest 🧘"
 ]
 
-LIGHT_THEME = {
-    "bg": "#fcf6f5",
-    "text": "#2e2e2e",
-    "canvas": "#fcf6f5",
-    "entry_bg": "white",
-    "button_bg": "#88e1f2",
-    "button_fg": "white",
-    "arc": "#88e1f2",
-    "outline": "#eee",
-    "reset_bg": "#ff6f61",
-    "reset_fg": "white",
-    # New role-based colors
-    "focus_color": "green",
-    "break_color": "orange",
-    "long_break_color": "red",
-}
-
-DARK_THEME = {
+THEME = {
     "bg": "#1e1e1e",
     "text": "#f0f0f0",
     "canvas": "#1e1e1e",
     "entry_bg": "#333333",
     "button_bg": "#88e1f2",
+    "button_bg_hover": "#6fd3e8",
     "button_fg": "white",
     "arc": "#88e1f2",
     "outline": "#444",
     "reset_bg": "#e57373",
+    "reset_bg_hover": "#d86161",
     "reset_fg": "white",
-    # New role-based colors
-    "focus_color": "#90ee90",     # lighter green for dark bg
-    "break_color": "#ffcc80",     # softer orange
-    "long_break_color": "#ff7f7f" # softer red
 }
 
 FONT_NAME = "Consolas"
