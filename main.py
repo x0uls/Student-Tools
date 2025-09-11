@@ -3,12 +3,11 @@ from PIL import Image
 
 # Global appearance
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")  # this will give buttons a dark-blue style
+ctk.set_default_color_theme("dark-blue")
 
 from gpa_calculator import GPACalculatorPage
 from pomodoro import PomodoroPage
 from reminder import ReminderPage
-
 
 class MultiToolApp(ctk.CTk):
     def __init__(self):
@@ -35,13 +34,13 @@ class MultiToolApp(ctk.CTk):
         navbar.pack(side="bottom", fill="x")
         navbar.grid_columnconfigure((0, 1, 2), weight=1)
 
-        # Icon buttons — now using dark-blue theme colors
+        # Icon buttons
         ctk.CTkButton(
             navbar,
             image=self.calc_icon,
             text="",
             command=lambda: self.show_page("gpa"),
-            hover_color="#1a2b4c",  # optional tweak to make hover darker blue
+            hover_color="#1a2b4c",
         ).grid(row=0, column=0, sticky="nsew")
 
         ctk.CTkButton(
