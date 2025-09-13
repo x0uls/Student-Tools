@@ -79,95 +79,33 @@ class ReminderPage(ctk.CTkFrame):
         # Auto-format date with dashes and validation
         def format_date(event=None):
             current = self.date_var.get()
-            # Remove all non-digits
-            digits_only = ''.join(filter(str.isdigit, current))
+            digits_only = ''.join(filter(str.isdigit, current))[:8]  # Limit to 8 digits
             
-            # Limit to 8 digits (YYYYMMDD)
-            if len(digits_only) > 8:
-                digits_only = digits_only[:8]
-            
-            # Helper functions for validation
-            def add_month_part(month_first, valid_seconds):
-                if len(digits_only) >= 6:
-                    month_second = digits_only[5]
-                    if month_second in valid_seconds:
-                        return formatted + "-" + month_first + month_second
-                    else:
-                        return formatted + "-" + month_first
-                else:
-                    return formatted + "-" + month_first
-            
-            def add_day_part(day_first, valid_seconds, max_day=None):
-                if len(digits_only) >= 8:
-                    day_second = digits_only[7]
-                    if day_second in valid_seconds:
-                        # Additional validation for max_day if provided
-                        if max_day is not None:
-                            day_value = int(day_first + day_second)
-                            if day_value > max_day:
-                                return formatted + "-" + day_first
-                        return formatted + "-" + day_first + day_second
-                    else:
-                        return formatted + "-" + day_first
-                else:
-                    return formatted + "-" + day_first
-            
-            # Validate and format with dashes
-            formatted = ""
-            if len(digits_only) >= 4:
-                # Year (first 4 digits)
-                formatted = digits_only[:4]
-                
+            if len(digits_only) < 4:
+                formatted = digits_only
+            else:
+                formatted = digits_only[:4]  # Year
                 if len(digits_only) >= 5:
-                    # Month validation
-                    month_first = digits_only[4]
-                    if month_first == '0':
-                        # If starts with 0, next digit must be 1-9
-                        formatted = add_month_part(month_first, '123456789')
-                    elif month_first == '1':
-                        # If starts with 1, next digit must be 0-2
-                        formatted = add_month_part(month_first, '012')
-                    else:
-                        return
-                    
-                    # Day validation (if we have month)
-                    if len(digits_only) >= 7:
-                        # Get the month to determine max day
-                        month_str = digits_only[4:6]
-                        month_num = int(month_str)
-                        
-                        # Determine max day based on month
-                        max_day = {1: 31, 3: 31, 5: 31, 7: 31, 8: 31, 10: 31, 12: 31,
-                                  4: 30, 6: 30, 9: 30, 11: 30, 2: 28}.get(month_num)
-                        if max_day is None:
-                            return
-                        
-                        day_first = digits_only[6]
-                        if day_first == '0':
-                            formatted = add_day_part(day_first, '123456789', max_day)
-                        elif day_first in '12':
-                            formatted = add_day_part(day_first, '0123456789', max_day)
-                        elif day_first == '3':
-                            if max_day >= 30:
-                                valid_seconds = '0' if max_day == 30 else '01'
-                                formatted = add_day_part(day_first, valid_seconds, max_day)
-                            else:
-                                return
-                        else:
-                            return
-                    elif len(digits_only) == 6:
-                        formatted += "-"
-                else:
-                    # Partial month input
                     month_first = digits_only[4]
                     if month_first in '01':
                         formatted += "-" + month_first
+                        if len(digits_only) >= 6:
+                            month_second = digits_only[5]
+                            if (month_first == '0' and month_second in '123456789') or \
+                               (month_first == '1' and month_second in '012'):
+                                formatted += month_second
+                                if len(digits_only) >= 7:
+                                    formatted += "-" + digits_only[6]
+                                    if len(digits_only) >= 8:
+                                        day_second = digits_only[7]
+                                        day_value = int(digits_only[6:8])
+                                        month_value = int(digits_only[4:6])
+                                        max_days = {1:31,3:31,5:31,7:31,8:31,10:31,12:31,4:30,6:30,9:30,11:30,2:28}
+                                        if day_value <= max_days.get(month_value, 31):
+                                            formatted += day_second
                     else:
                         return
-            else:
-                formatted = digits_only
             
-            # Only update if different to avoid cursor jumping
             if formatted != current:
                 self.date_var.set(formatted)
         
@@ -186,15 +124,10 @@ class ReminderPage(ctk.CTkFrame):
         
         # Validation functions
         def _validate_range(proposed_value, min_val, max_val):
-            if not proposed_value:
-                return True
-            return proposed_value.isdigit() and min_val <= int(proposed_value) <= max_val
+            return not proposed_value or (proposed_value.isdigit() and min_val <= int(proposed_value) <= max_val)
         
-        def _validate_hour(proposed_value):
-            return _validate_range(proposed_value, 1, 12)
-        
-        def _validate_minute(proposed_value):
-            return _validate_range(proposed_value, 0, 59)
+        _validate_hour = lambda v: _validate_range(v, 1, 12)
+        _validate_minute = lambda v: _validate_range(v, 0, 59)
         
         # Hour entry (1-12)
         hour_vcmd = self.register(_validate_hour)
@@ -237,11 +170,7 @@ class ReminderPage(ctk.CTkFrame):
         ctk.CTkLabel(self.scrollable_frame, text="Remind After (minutes):").pack()
 
         # Validation: only allow blank (for editing) or positive integers
-        def _validate_positive(proposed_value):
-            if not proposed_value:
-                return True
-            return proposed_value.isdigit() and int(proposed_value) > 0
-
+        _validate_positive = lambda v: not v or (v.isdigit() and int(v) > 0)
         vcmd = self.register(_validate_positive)
         self.minutes_entry = ctk.CTkEntry(self.scrollable_frame, width=100, placeholder_text="e.g. 15")
         # CTkEntry supports underlying validate options from tkinter.Entry
@@ -255,7 +184,7 @@ class ReminderPage(ctk.CTkFrame):
         ctk.CTkCheckBox(repeat_frame, text="Repeat", variable=self.repeat_var, command=self._on_repeat_toggle).pack(side="left")
         ctk.CTkLabel(repeat_frame, text="every").pack(side="left", padx=(10, 0))
         # Validation for repeat interval: positive integers only
-        self._repeat_vcmd = self.register(lambda v: not v or (v.isdigit() and int(v) > 0))
+        self._repeat_vcmd = self.register(_validate_positive)
         self.repeat_interval_entry = ctk.CTkEntry(repeat_frame, width=60, placeholder_text="min")
         self.repeat_interval_entry.configure(validate="key", validatecommand=(self._repeat_vcmd, "%P"))
         self.repeat_interval_entry.pack(side="left", padx=5)
@@ -304,10 +233,7 @@ class ReminderPage(ctk.CTkFrame):
             import sys
             if sys.platform.startswith("win"):
                 import winsound
-                try:
-                    winsound.MessageBeep(winsound.MB_ICONASTERISK)
-                except Exception:
-                    winsound.Beep(1000, 120)
+                winsound.MessageBeep(winsound.MB_ICONASTERISK) if hasattr(winsound, 'MessageBeep') else winsound.Beep(1000, 120)
             else:
                 parent.bell()
         except Exception:
@@ -316,8 +242,7 @@ class ReminderPage(ctk.CTkFrame):
         toast = ctk.CTkToplevel(parent)
         toast.overrideredirect(True)
         try:
-            toast.attributes("-topmost", True)
-            toast.attributes("-alpha", 0.0)
+            toast.attributes("-topmost", True, "-alpha", 0.0)
         except Exception:
             pass
 
@@ -387,10 +312,15 @@ class ReminderPage(ctk.CTkFrame):
             record["auto_id"] = parent.after(2000, lambda: _close(False))
 
         def _close(user):
-            # If user dismissed and this is a repeating reminder, cancel it and remove from list
-            if user and getattr(reminder, "repeat", False):
+            # If user dismissed, cancel the reminder and remove from list (both repeating and non-repeating)
+            if user:
                 reminder.stop()
                 self._remove_reminder_instance(reminder)
+            else:
+                # For auto-close, only remove non-repeating reminders (repeating ones should continue)
+                if not getattr(reminder, "repeat", False):
+                    reminder.stop()
+                    self._remove_reminder_instance(reminder)
             cancel_auto_close()
 
             # Fade-out and slide-down
@@ -479,14 +409,12 @@ class ReminderPage(ctk.CTkFrame):
 
     def save_reminders(self):
         try:
-            data = []
-            for r, _text in self.reminders:
-                data.append({
-                    "message": getattr(r, "message", ""),
-                    "remind_time": getattr(r, "remind_time", datetime.now()).isoformat(),
-                    "repeat": bool(getattr(r, "repeat", False)),
-                    "interval_minutes": int(getattr(r, "interval").total_seconds() // 60) if getattr(r, "repeat", False) else 0,
-                })
+            data = [{
+                "message": r.message,
+                "remind_time": r.remind_time.isoformat(),
+                "repeat": r.repeat,
+                "interval_minutes": int(r.interval.total_seconds() // 60) if r.repeat else 0,
+            } for r, _ in self.reminders]
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
             with open(self._storage_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -510,21 +438,16 @@ class ReminderPage(ctk.CTkFrame):
                 repeat = bool(item.get("repeat", False))
                 interval_minutes = int(item.get("interval_minutes", 0))
 
+                # Skip past non-repeating reminders
+                if not repeat and remind_time <= now:
+                    continue
+                
+                # Adjust repeating reminders to next occurrence
                 if repeat and interval_minutes > 0:
-                    interval = timedelta(minutes=interval_minutes)
                     while remind_time <= now:
-                        remind_time += interval
-                else:
-                    if remind_time <= now:
-                        continue
+                        remind_time += timedelta(minutes=interval_minutes)
 
-                reminder = Reminder(
-                    message,
-                    remind_time,
-                    repeat,
-                    interval_minutes=interval_minutes if repeat else 0,
-                    callback=self.show_reminder
-                )
+                reminder = Reminder(message, remind_time, repeat, interval_minutes, self.show_reminder)
                 reminder.start()
 
                 display_text = f"{remind_time.strftime('%Y-%m-%d %H:%M')} | {message}"
@@ -555,62 +478,48 @@ class ReminderPage(ctk.CTkFrame):
             if date_str and hour and minute:
                 try:
                     # Convert 12-hour format to 24-hour format
-                    ampm = self.ampm_var.get()
                     hour_int = int(hour)
-                    
-                    # Convert to 24-hour format
-                    if ampm == "PM" and hour_int != 12:
+                    if self.ampm_var.get() == "PM" and hour_int != 12:
                         hour_int += 12
-                    elif ampm == "AM" and hour_int == 12:
+                    elif self.ampm_var.get() == "AM" and hour_int == 12:
                         hour_int = 0
                     
-                    # Validate hour and minute ranges (already validated by entry validation)
-                    if not hour.isdigit() or not minute.isdigit():
-                        messagebox.showerror("Error", "Please enter valid hour and minute values.")
+                    remind_time = datetime.strptime(f"{date_str} {hour_int:02d}:{minute}", "%Y-%m-%d %H:%M")
+                    if remind_time <= datetime.now():
+                        messagebox.showwarning("Warning", "Please enter a future date and time.")
                         return
-                    
-                    remind_time = datetime.strptime(f"{date_str} {hour_int:02d}:{minute}", "%Y-%m-%d %H:%M")    
                 except ValueError:
                     messagebox.showerror("Error", "Invalid date or time format.")
-                    return
-                if remind_time <= datetime.now():
-                    messagebox.showwarning("Warning", "Please enter a future date and time.")
                     return
             elif minutes_str:
                 try:
                     minutes = int(minutes_str)
+                    if minutes <= 0:
+                        messagebox.showwarning("Warning", "Please enter a positive number of minutes.")
+                        return
+                    remind_time = datetime.now() + timedelta(minutes=minutes)
                 except ValueError:  
                     messagebox.showerror("Error", "Please enter a valid number of minutes.")
                     return
-                if minutes <= 0:
-                    messagebox.showwarning("Warning", "Please enter a positive number of minutes.")
-                    return
-                remind_time = datetime.now() + timedelta(minutes=minutes)
             else:
                 messagebox.showwarning("Warning", "Please enter either a date and time or minutes from now.")
                 return
 
             if repeat:
-                interval_text = self.repeat_interval_entry.get()
-                if not interval_text.strip():
+                interval_text = self.repeat_interval_entry.get().strip()
+                if not interval_text:
                     messagebox.showwarning("Warning", "Please enter a repeat interval in minutes.")
                     return
                 try:
                     interval_minutes = int(interval_text)
+                    if interval_minutes <= 0:
+                        messagebox.showwarning("Warning", "Repeat interval must be a positive number.")
+                        return
                 except ValueError:
                     messagebox.showerror("Error", "Repeat interval must be a number.")
                     return
-                if interval_minutes <= 0:
-                    messagebox.showwarning("Warning", "Repeat interval must be a positive number.")
-                    return
 
-            reminder = Reminder(
-                message,
-                remind_time,
-                repeat,
-                interval_minutes=interval_minutes if repeat else 0,
-                callback=self.show_reminder
-            )
+            reminder = Reminder(message, remind_time, repeat, interval_minutes, self.show_reminder)
             reminder.start()
 
             display_text = f"{remind_time.strftime('%Y-%m-%d %H:%M')} | {message}"
@@ -619,24 +528,19 @@ class ReminderPage(ctk.CTkFrame):
 
             self.reminders.append((reminder, display_text))
             self._add_ui_row(display_text)
-
-            # Update delete button state after adding a new reminder
             self.update_delete_button_state()
-
-            # Persist reminders
             self.save_reminders()
 
             # Clear inputs for convenience
-            self.msg_entry.delete(0, "end")
-            self.minutes_entry.delete(0, "end")
-            self.repeat_interval_entry.delete(0, "end")
+            for entry in [self.msg_entry, self.minutes_entry, self.repeat_interval_entry]:
+                entry.delete(0, "end")
 
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
     def open_calendar(self):
         # Avoid multiple popups
-        if hasattr(self, "_cal_win") and self._cal_win is not None and self._cal_win.winfo_exists():
+        if hasattr(self, "_cal_win") and self._cal_win and self._cal_win.winfo_exists():
             self._cal_win.lift()
             return
         self._cal_win = ctk.CTkToplevel(self)
@@ -644,33 +548,18 @@ class ReminderPage(ctk.CTkFrame):
         self._cal_win.resizable(False, False)
 
         # Colors aligned with CustomTkinter dark theme
-        dark_bg = "#1f1f1f"
-        dark_fg = "#d6d6d6"
-        accent = "#1a2b4c"
-        sel_bg = "#2f4b7a"
-
+        colors = {
+            "bg": "#1f1f1f", "fg": "#d6d6d6", "accent": "#1a2b4c", "sel": "#2f4b7a", "other": "#7a7a7a"
+        }
+        
         today = datetime.now().date()
         self._calendar = Calendar(
-            self._cal_win,
-            selectmode="day",
-            year=today.year,
-            month=today.month,
-            day=today.day,
-            date_pattern="yyyy-mm-dd",
-            background=dark_bg,
-            disabledbackground=dark_bg,
-            bordercolor=accent,
-            headersbackground=dark_bg,
-            normalbackground=dark_bg,
-            weekendbackground=dark_bg,
-            selectbackground=sel_bg,
-            foreground=dark_fg,
-            normalforeground=dark_fg,
-            headersforeground=dark_fg,
-            weekendforeground=dark_fg,
-            othermonthforeground="#7a7a7a",
-            othermonthbackground=dark_bg,
-            othermonthwebackground=dark_bg,
+            self._cal_win, selectmode="day", year=today.year, month=today.month, day=today.day,
+            date_pattern="yyyy-mm-dd", background=colors["bg"], disabledbackground=colors["bg"],
+            bordercolor=colors["accent"], headersbackground=colors["bg"], normalbackground=colors["bg"],
+            weekendbackground=colors["bg"], selectbackground=colors["sel"], foreground=colors["fg"],
+            normalforeground=colors["fg"], headersforeground=colors["fg"], weekendforeground=colors["fg"],
+            othermonthforeground=colors["other"], othermonthbackground=colors["bg"], othermonthwebackground=colors["bg"]
         )
         self._calendar.pack(padx=10, pady=(10, 6))
 
@@ -680,9 +569,8 @@ class ReminderPage(ctk.CTkFrame):
         ctk.CTkButton(btn_row, text="Cancel", command=self._cal_win.destroy, width=80).pack(side="left", padx=5)
 
     def _on_calendar_ok(self):
-        selected = self._calendar.get_date()
-        self.date_var.set(selected)
-        if hasattr(self, "_cal_win") and self._cal_win is not None and self._cal_win.winfo_exists():
+        self.date_var.set(self._calendar.get_date())
+        if hasattr(self, "_cal_win") and self._cal_win and self._cal_win.winfo_exists():
             self._cal_win.destroy()
 
     def _on_repeat_toggle(self):
@@ -691,8 +579,7 @@ class ReminderPage(ctk.CTkFrame):
 
 
     def update_delete_button_state(self):
-        any_selected = any(var.get() for var in self.reminder_vars)
-        self.delete_btn.configure(state="normal" if any_selected else "disabled")
+        self.delete_btn.configure(state="normal" if any(var.get() for var in self.reminder_vars) else "disabled")
 
     def delete_selected_reminder(self):
         to_delete = [i for i, var in enumerate(self.reminder_vars) if var.get()]
@@ -701,11 +588,9 @@ class ReminderPage(ctk.CTkFrame):
             return
         # Delete from highest index to lowest to avoid shifting issues
         for idx in sorted(to_delete, reverse=True):
-            reminder, display_text = self.reminders[idx]
-            reminder.stop()
+            self.reminders[idx][0].stop()  # Stop reminder
             self.reminders.pop(idx)
             self.reminder_vars.pop(idx)
-            cb = self.reminder_widgets.pop(idx)
-            cb.destroy()
+            self.reminder_widgets.pop(idx).destroy()  # Destroy widget
         self.update_delete_button_state()
         self.save_reminders()
